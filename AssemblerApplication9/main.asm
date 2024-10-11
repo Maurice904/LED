@@ -17,9 +17,9 @@
 .def d = r21
 .def input = r22
 .def turnoff = r6
+.def flag = r23
 
 .set outMask = 0xFF
-.set fullPat = 0xFF
 .set pat1 = 0b11000000
 .set pat2 = 0b00110000
 .set pat3 = 0b00001100
@@ -53,22 +53,38 @@
 .macro delayC
 	ldi c, 0b00111111
 	while:
+		readInput
+		cpi flag, 0
+		brne end 
 		delayB
 		dec c
 		brne while
+	end:
 .endmacro
 
-.macro checkButton
+.macro readInput
+	clr flag
 	lds input, PINK
 	cpi input, 0xFF
-	breq midDest
+	breq end
 	delayForPress
 	lds input, PINK
 	cpi input, 0xFF
-	breq dest
+	breq end
 	sbrc input, 6
 	rjmp shut
-	andi input, 1
+	ldi flag, 2
+	rjmp end
+	shut:
+	ldi flag, 1
+	end:
+.endmacro
+
+.macro checkButton
+	readInput
+	cpi flag, 0
+	breq dest
+	cpi flag, 1
 	breq shut
 	inc count
 	cpi count, 1
@@ -83,54 +99,60 @@
 	midDest:
 		rjmp dest
 	first:
+		clr flag
 		ldi temp, pat1
 		out PORTC, temp
 		rjmp dest
 	second:
+		clr flag
 		ldi temp, pat2
 		out PORTC, temp
 		rjmp dest
 	third:
+		clr flag
 		ldi temp, pat3
 		out PORTC, temp
 		rjmp dest
 	shut:
+		clr flag
 		clr temp
 		out PORTC, temp
 		clr count
 	dest:
 		jmp end
 	fourth:
+	clr flag
+	clr count
 	fourPress
+	cpi flag, 2
+	breq first_jmp
+	jmp shut
+	first_jmp:
+	inc count
+	jmp first
 	end:
 .endmacro
 
 .macro fourPress
 	while:
-		lds input, PINK
-		cpi input, 0xFF
-		breq cont
-		delayForPress
-		lds input, PINK
-		cpi input, 0xFF
-		breq cont
-		sbrc input, 6
-		rjmp shut
-	cont:
 		ldi temp, pat1
 		out PORTC, temp
 		delayC
+		cpi flag, 0
+		breq cont
+		jmp endWhile
+		cont:
 		ldi temp, pat2
 		out PORTC, temp
 		delayC
+		cpi flag, 0
+		brne endWhile
 		ldi temp, pat3
 		out PORTC, temp
 		delayC
+		cpi flag, 0
+		brne endWhile
 		rjmp while
-	shut:
-		clr temp
-		out PORTC, temp
-		clr count
 	endWhile:
 	
 .endmacro
@@ -144,7 +166,6 @@ start:
 	sts PORTK, temp; turn on pull-up resistor
 	out DDRC, temp; set port c as output
 	clr count
-	ldi temp, fullPat
 	WhileCheck:
 		checkButton
 		rjmp WhileCheck

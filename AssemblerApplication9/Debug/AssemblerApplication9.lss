@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm Fri Oct 11 23:11:35 2024
+AVRASM ver. 2.2.8  E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm Sat Oct 12 01:05:46 2024
 
 [builtin](2): Including file 'E:/Microchip Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m2560def.inc'
 E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm(10): Including file 'E:/Microchip Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m2560def.inc'
@@ -1905,9 +1905,9 @@ E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm(1
                                  .def d = r21
                                  .def input = r22
                                  .def turnoff = r6
+                                 .def flag = r23
                                  
                                  .set outMask = 0xFF
-                                 .set fullPat = 0xFF
                                  .set pat1 = 0b11000000
                                  .set pat2 = 0b00110000
                                  .set pat3 = 0b00001100
@@ -1941,22 +1941,38 @@ E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm(1
                                  .macro delayC
                                  	ldi c, 0b00111111
                                  	while:
+                                 		readInput
+                                 		cpi flag, 0
+                                 		brne end 
                                  		delayB
                                  		dec c
                                  		brne while
+                                 	end:
                                  .endmacro
                                  
-                                 .macro checkButton
+                                 .macro readInput
+                                 	clr flag
                                  	lds input, PINK
                                  	cpi input, 0xFF
-                                 	breq midDest
+                                 	breq end
                                  	delayForPress
                                  	lds input, PINK
                                  	cpi input, 0xFF
-                                 	breq dest
+                                 	breq end
                                  	sbrc input, 6
                                  	rjmp shut
-                                 	andi input, 1
+                                 	ldi flag, 2
+                                 	rjmp end
+                                 	shut:
+                                 	ldi flag, 1
+                                 	end:
+                                 .endmacro
+                                 
+                                 .macro checkButton
+                                 	readInput
+                                 	cpi flag, 0
+                                 	breq dest
+                                 	cpi flag, 1
                                  	breq shut
                                  	inc count
                                  	cpi count, 1
@@ -1971,54 +1987,60 @@ E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm(1
                                  	midDest:
                                  		rjmp dest
                                  	first:
+                                 		clr flag
                                  		ldi temp, pat1
                                  		out PORTC, temp
                                  		rjmp dest
                                  	second:
+                                 		clr flag
                                  		ldi temp, pat2
                                  		out PORTC, temp
                                  		rjmp dest
                                  	third:
+                                 		clr flag
                                  		ldi temp, pat3
                                  		out PORTC, temp
                                  		rjmp dest
                                  	shut:
+                                 		clr flag
                                  		clr temp
                                  		out PORTC, temp
                                  		clr count
                                  	dest:
                                  		jmp end
                                  	fourth:
+                                 	clr flag
+                                 	clr count
                                  	fourPress
+                                 	cpi flag, 2
+                                 	breq first_jmp
+                                 	jmp shut
+                                 	first_jmp:
+                                 	inc count
+                                 	jmp first
                                  	end:
                                  .endmacro
                                  
                                  .macro fourPress
                                  	while:
-                                 		lds input, PINK
-                                 		cpi input, 0xFF
-                                 		breq cont
-                                 		delayForPress
-                                 		lds input, PINK
-                                 		cpi input, 0xFF
-                                 		breq cont
-                                 		sbrc input, 6
-                                 		rjmp shut
-                                 	cont:
                                  		ldi temp, pat1
                                  		out PORTC, temp
                                  		delayC
+                                 		cpi flag, 0
+                                 		breq cont
+                                 		jmp endWhile
+                                 		cont:
                                  		ldi temp, pat2
                                  		out PORTC, temp
                                  		delayC
+                                 		cpi flag, 0
+                                 		brne endWhile
                                  		ldi temp, pat3
                                  		out PORTC, temp
                                  		delayC
+                                 		cpi flag, 0
+                                 		brne endWhile
                                  		rjmp while
-                                 	shut:
-                                 		clr temp
-                                 		out PORTC, temp
-                                 		clr count
                                  	endWhile:
                                  	
                                  .endmacro
@@ -2027,16 +2049,16 @@ E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm(1
 000000 2700                      	clr temp
 000001 2e60                      	mov turnoff, temp; set turn off pattern
 000002 2700                      	clr temp;
-000003 9300 0107                 	sts DDRK, temp ;set port b as input
+000003 9300 0107                 	sts DDRK, temp ;set port K as input
 000005 ef0f                      	ldi temp, 0xFF
 000006 9300 0108                 	sts PORTK, temp; turn on pull-up resistor
 000008 b907                      	out DDRC, temp; set port c as output
 000009 2711                      	clr count
-00000a ef0f                      	ldi temp, fullPat
                                  	WhileCheck:
+00000a 2777
 00000b 9160 0106
 00000d 3f6f
-00000e f0e9
+00000e f0a1
 00000f e006
 000010 3000
 000011 f041
@@ -2050,94 +2072,170 @@ E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm(1
 000019 cff6
 00001a 9160 0106
 00001c 3f6f
-00001d f0d9
+00001d f029
 00001e fd66
-00001f c016
-000020 7061
-000021 f0a1
-000022 9513
-000023 3011
-000024 f041
-000025 3012
-000026 f049
-000027 3013
-000028 f051
-000029 3014
-00002a 2711
-00002b c00f
-00002c c00c
-00002d ec00
-00002e b908
-00002f c009
-000030 e300
-000031 b908
-000032 c006
-000033 e00c
+00001f c002
+000020 e072
+000021 c001
+000022 e071
+000023 3070
+000024 f0e9
+000025 3071
+000026 f0b9
+000027 9513
+000028 3011
+000029 f041
+00002a 3012
+00002b f051
+00002c 3013
+00002d f061
+00002e 3014
+00002f 2711
+000030 c013
+000031 c010
+000032 2777
+000033 ec00
 000034 b908
-000035 c003
-000036 2700
-000037 b908
-000038 2711
-000039 940c 0075
-00003b 9160 0106
-00003d 3f6f
-00003e f089
-00003f e006
-000040 3000
-000041 f041
-000042 ef3f
-000043 ef2f
-000044 952a
-000045 f7f1
-000046 953a
-000047 f7d9
-000048 950a
-000049 cff6
+000035 c00c
+000036 2777
+000037 e300
+000038 b908
+000039 c008
+00003a 2777
+00003b e00c
+00003c b908
+00003d c004
+00003e 2777
+00003f 2700
+000040 b908
+000041 2711
+000042 940c 00c8
+000044 2777
+000045 2711
+000046 ec00
+000047 b908
+000048 e34f
+000049 2777
 00004a 9160 0106
 00004c 3f6f
-00004d f011
-00004e fd66
-00004f c022
-000050 ec00
-000051 b908
-000052 e34f
-000053 ef3f
-000054 ef2f
-000055 952a
-000056 f7f1
-000057 953a
-000058 f7d9
-000059 954a
-00005a f7c1
-00005b e300
-00005c b908
-00005d e34f
-00005e ef3f
-00005f ef2f
-000060 952a
-000061 f7f1
-000062 953a
-000063 f7d9
-000064 954a
-000065 f7c1
-000066 e00c
-000067 b908
-000068 e34f
-000069 ef3f
-00006a ef2f
-00006b 952a
-00006c f7f1
-00006d 953a
-00006e f7d9
-00006f 954a
-000070 f7c1
-000071 cfc9
-000072 2700
-000073 b908
-000074 2711                      		checkButton
-000075 cf95                      		rjmp WhileCheck
+00004d f0a1
+00004e e006
+00004f 3000
+000050 f041
+000051 ef3f
+000052 ef2f
+000053 952a
+000054 f7f1
+000055 953a
+000056 f7d9
+000057 950a
+000058 cff6
+000059 9160 0106
+00005b 3f6f
+00005c f029
+00005d fd66
+00005e c002
+00005f e072
+000060 c001
+000061 e071
+000062 3070
+000063 f441
+000064 ef3f
+000065 ef2f
+000066 952a
+000067 f7f1
+000068 953a
+000069 f7d9
+00006a 954a
+00006b f6e9
+00006c 3070
+00006d f011
+00006e 940c 00c1
+000070 e300
+000071 b908
+000072 e34f
+000073 2777
+000074 9160 0106
+000076 3f6f
+000077 f0a1
+000078 e006
+000079 3000
+00007a f041
+00007b ef3f
+00007c ef2f
+00007d 952a
+00007e f7f1
+00007f 953a
+000080 f7d9
+000081 950a
+000082 cff6
+000083 9160 0106
+000085 3f6f
+000086 f029
+000087 fd66
+000088 c002
+000089 e072
+00008a c001
+00008b e071
+00008c 3070
+00008d f441
+00008e ef3f
+00008f ef2f
+000090 952a
+000091 f7f1
+000092 953a
+000093 f7d9
+000094 954a
+000095 f6e9
+000096 3070
+000097 f549
+000098 e00c
+000099 b908
+00009a e34f
+00009b 2777
+00009c 9160 0106
+00009e 3f6f
+00009f f0a1
+0000a0 e006
+0000a1 3000
+0000a2 f041
+0000a3 ef3f
+0000a4 ef2f
+0000a5 952a
+0000a6 f7f1
+0000a7 953a
+0000a8 f7d9
+0000a9 950a
+0000aa cff6
+0000ab 9160 0106
+0000ad 3f6f
+0000ae f029
+0000af fd66
+0000b0 c002
+0000b1 e072
+0000b2 c001
+0000b3 e071
+0000b4 3070
+0000b5 f441
+0000b6 ef3f
+0000b7 ef2f
+0000b8 952a
+0000b9 f7f1
+0000ba 953a
+0000bb f7d9
+0000bc 954a
+0000bd f6e9
+0000be 3070
+0000bf f409
+0000c0 cf85
+0000c1 3072
+0000c2 f011
+0000c3 940c 003e
+0000c5 9513
+0000c6 940c 0032                 		checkButton
+0000c8 cf41                      		rjmp WhileCheck
                                  end:
-000076 cfff                      	rjmp end
+0000c9 cfff                      	rjmp end
 
 
 RESOURCE USE INFORMATION
@@ -2157,38 +2255,38 @@ counted separately from r26..r31 here.
 "ATmega2560" register use summary:
 x  :   0 y  :   0 z  :   0 r0 :   0 r1 :   0 r2 :   0 r3 :   0 r4 :   0 
 r5 :   0 r6 :   1 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  30 r17:   9 r18:  10 r19:  10 r20:   6 
-r21:   0 r22:  11 r23:   0 r24:   0 r25:   0 r26:   0 r27:   0 r28:   0 
+r13:   0 r14:   0 r15:   0 r16:  33 r17:  10 r18:  14 r19:  14 r20:   6 
+r21:   0 r22:  20 r23:  26 r24:   0 r25:   0 r26:   0 r27:   0 r28:   0 
 r29:   0 r30:   0 r31:   0 
-Registers used: 7 out of 35 (20.0%)
+Registers used: 8 out of 35 (22.9%)
 
 "ATmega2560" instruction use summary:
 .lds  :   0 .sts  :   0 adc   :   0 add   :   0 adiw  :   0 and   :   0 
-andi  :   1 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :  10 brge  :   0 brhc  :   0 
+andi  :   0 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :  19 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   0 brlt  :   0 brmi  :   0 
-brne  :  13 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
+brne  :  22 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
 brvs  :   0 bset  :   0 bst   :   0 call  :   0 cbi   :   0 cbr   :   0 
-clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :   8 cls   :   0 
+clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :  16 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :  10 cpse  :   0 dec   :  15 eicall:   0 eijmp :   0 elpm  :   0 
+cpi   :  25 cpse  :   0 dec   :  21 eicall:   0 eijmp :   0 elpm  :   0 
 eor   :   0 fmul  :   0 fmuls :   0 fmulsu:   0 icall :   0 ijmp  :   0 
-in    :   0 inc   :   1 jmp   :   1 ld    :   0 ldd   :   0 ldi   :  13 
-lds   :   4 lpm   :   0 lsl   :   0 lsr   :   0 mov   :   1 movw  :   0 
+in    :   0 inc   :   2 jmp   :   4 ld    :   0 ldd   :   0 ldi   :  22 
+lds   :   8 lpm   :   0 lsl   :   0 lsr   :   0 mov   :   1 movw  :   0 
 mul   :   0 muls  :   0 mulsu :   0 neg   :   0 nop   :   0 or    :   0 
-ori   :   0 out   :   9 pop   :   0 push  :   0 rcall :   0 ret   :   0 
-reti  :   0 rjmp  :  12 rol   :   0 ror   :   0 sbc   :   0 sbci  :   0 
-sbi   :   0 sbic  :   0 sbis  :   0 sbiw  :   0 sbr   :   0 sbrc  :   2 
-sbrs  :   0 sec   :   0 seh   :   0 sei   :   0 sen   :   0 ser   :  10 
+ori   :   0 out   :   8 pop   :   0 push  :   0 rcall :   0 ret   :   0 
+reti  :   0 rjmp  :  20 rol   :   0 ror   :   0 sbc   :   0 sbci  :   0 
+sbi   :   0 sbic  :   0 sbis  :   0 sbiw  :   0 sbr   :   0 sbrc  :   4 
+sbrs  :   0 sec   :   0 seh   :   0 sei   :   0 sen   :   0 ser   :  14 
 ses   :   0 set   :   0 sev   :   0 sez   :   0 sleep :   0 spm   :   0 
 st    :   0 std   :   0 sts   :   2 sub   :   0 subi  :   0 swap  :   0 
 tst   :   0 wdr   :   0 
-Instructions used: 16 out of 116 (13.8%)
+Instructions used: 15 out of 116 (12.9%)
 
 "ATmega2560" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x0000ee    238      0    238  262144   0.1%
+[.cseg] 0x000000 0x000194    404      0    404  262144   0.2%
 [.dseg] 0x000200 0x000200      0      0      0    8192   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    4096   0.0%
 

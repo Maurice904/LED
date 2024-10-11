@@ -22,8 +22,8 @@
   <FILE>AssemblerApplication9.lss</FILE>
  </OUTPUT_FILES>
  <LABELS>
-  <start><FILE>E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm</FILE><LINE>138</LINE></start>
-  <WhileCheck><FILE>E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm</FILE><LINE>148</LINE></WhileCheck>
-  <end><FILE>E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm</FILE><LINE>151</LINE></end>
+  <start><FILE>E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm</FILE><LINE>160</LINE></start>
+  <WhileCheck><FILE>E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm</FILE><LINE>169</LINE></WhileCheck>
+  <end><FILE>E:\MyDoc\Atmel Studio\7.0\AssemblerApplication9\AssemblerApplication9\main.asm</FILE><LINE>172</LINE></end>
  </LABELS>
 </ASSEMBLER_INFO>
